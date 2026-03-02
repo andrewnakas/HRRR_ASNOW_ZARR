@@ -43,10 +43,10 @@ github_actions:
   batch_size_days: 7  # Process 7 days at a time
   max_parallel_jobs: 2  # Number of concurrent jobs
 
-# Cloud storage configuration
-# Set provider to 'local' to use local filesystem, or 's3'/'gcs'/'azure' for cloud
+# Storage configuration
+# Using local Git LFS storage (all data committed to GitHub)
 cloud_storage:
-  provider: "local"  # Options: local, s3, gcs, azure
-  bucket: null  # Bucket/container name (required for cloud providers)
-  zarr_path: "hrrr-analysis-snowfall.zarr"  # Path within bucket
-  region: "us-east-1"  # AWS region (for S3 only)
+  provider: "local"  # Using local storage with Git LFS
+  bucket: null
+  zarr_path: "hrrr-analysis-snowfall.zarr"
+  region: null

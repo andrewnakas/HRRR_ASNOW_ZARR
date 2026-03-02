@@ -25,6 +25,23 @@ Dynamical.org's HRRR Analysis dataset lacks accumulation variables (ASNOW, WEASD
 - ✅ Uses the same grid and projection as Dynamical.org HRRR Analysis
 - ✅ Can be combined with Dynamical.org data for complete weather analysis
 - ✅ Stored in efficient zarr format with compression
+- ✅ **Stored directly in GitHub using Git LFS** (or optionally cloud storage)
+
+## Storage Options
+
+This project supports two storage approaches:
+
+1. **Git LFS (Default)** - All data stored directly in GitHub
+   - ✅ Simple setup - no cloud accounts needed
+   - ✅ Integrated with GitHub
+   - ⚠️ Cost: ~$10-15/month for full dataset
+   - 📖 See [QUICKSTART_GIT_LFS.md](QUICKSTART_GIT_LFS.md)
+
+2. **Cloud Storage (S3/GCS/Azure)** - Data stored in cloud, code in GitHub
+   - ✅ Lower cost (~$0.50-1/month)
+   - ✅ Scalable to any size
+   - ⚠️ Requires cloud account setup
+   - 📖 See [CLOUD_STORAGE.md](CLOUD_STORAGE.md)
 
 ## Project Structure
 
@@ -43,14 +60,29 @@ Dynamical.org's HRRR Analysis dataset lacks accumulation variables (ASNOW, WEASD
 ├── requirements.txt     # Python dependencies
 ├── progress.json        # Backfill progress tracker
 └── data/
-    └── hrrr-analysis-snowfall.zarr/  # Zarr dataset (gitignored)
+    └── hrrr-analysis-snowfall.zarr/  # Zarr dataset (stored with Git LFS)
 ```
 
-## Setup
+## Quick Start
+
+**Choose your storage approach:**
+
+### Option 1: Git LFS (Recommended for Quick Start)
+👉 **See [QUICKSTART_GIT_LFS.md](QUICKSTART_GIT_LFS.md)** for step-by-step instructions
+
+All data stored in GitHub. Simple setup, no cloud accounts needed.
+
+### Option 2: Cloud Storage (Recommended for Production)
+👉 **See [CLOUD_STORAGE.md](CLOUD_STORAGE.md)** and [QUICKSTART.md](QUICKSTART.md)
+
+Lower cost for large datasets. Requires S3/GCS/Azure account.
+
+## Setup (Git LFS Approach)
 
 ### Prerequisites
 
 - Python 3.11+
+- Git with LFS extension
 - eccodes library (for GRIB2 reading)
 
 ### Installation

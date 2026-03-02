@@ -42,6 +42,17 @@ jobs:
         with:
           lfs: true
           fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure Git LFS
+        run: |
+          git lfs install
+          git lfs track "data/**/*"
+          git lfs track "*.zarr/**/*"
+
+      - name: Pull existing LFS data
+        run: |
+          git lfs pull
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -52,7 +63,7 @@ jobs:
       - name: Install system dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y libeccodes-dev libeccodes-tools
+          sudo apt-get install -y libeccodes-dev libeccodes-tools git-lfs
 
       - name: Install Python dependencies
         run: |
@@ -162,7 +173,13 @@ jobs:
           git config user.name "GitHub Actions Bot"
           git config user.email "actions@github.com"
 
+          # Add .gitattributes if not already committed
+          if [ ! -f .gitattributes ]; then
+            git add .gitattributes
+          fi
+
           # Stage the zarr store and progress file
+          # LFS will automatically handle large files based on .gitattributes
           git add data/hrrr-analysis-snowfall.zarr/
           git add progress.json
 
@@ -170,8 +187,16 @@ jobs:
           if git diff --staged --quiet; then
             echo "No changes to commit"
           else
-            git commit -m "Update HRRR ASNOW data: ${{ steps.dates.outputs.start_date }} to ${{ steps.dates.outputs.end_date }}"
-            git push
+            echo "Committing changes with Git LFS..."
+            git commit -m "Update HRRR ASNOW data: ${{ steps.dates.outputs.start_date }} to ${{ steps.dates.outputs.end_date }}
+
+Data stored using Git LFS for efficient storage.
+
+🤖 Generated with Claude Code"
+
+            # Push with LFS
+            git lfs push origin main
+            git push origin main
           fi
 
       - name: Upload statistics artifact

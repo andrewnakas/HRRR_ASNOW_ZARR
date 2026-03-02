@@ -25,12 +25,10 @@ venv/
 env/
 ENV/
 
-# Data files
-data/
+# Data files (temporary downloads only, zarr data is tracked with LFS)
 *.grib2
 *.grib
 *.nc
-*.zarr/
 
 # IDE
 .vscode/
