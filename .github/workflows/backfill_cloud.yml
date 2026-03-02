@@ -1,0 +1,195 @@
+name: HRRR ASNOW Cloud Backfill
+
+on:
+  # Manual trigger with date range input
+  workflow_dispatch:
+    inputs:
+      start_date:
+        description: 'Start date (YYYY-MM-DD)'
+        required: true
+        default: '2014-10-01'
+      end_date:
+        description: 'End date (YYYY-MM-DD)'
+        required: true
+        default: '2014-10-07'
+      resume:
+        description: 'Resume from existing data'
+        required: false
+        type: boolean
+        default: true
+
+  # Scheduled run - process one week at a time
+  schedule:
+    # Run daily at 06:00 UTC
+    - cron: '0 6 * * *'
+
+jobs:
+  backfill:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360  # 6 hours max
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libeccodes-dev libeccodes-tools
+
+      - name: Install Python dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Configure AWS credentials (if using S3)
+        if: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION || 'us-east-1' }}
+
+      - name: Configure Google Cloud credentials (if using GCS)
+        if: ${{ secrets.GCS_SERVICE_ACCOUNT_KEY }}
+        run: |
+          echo '${{ secrets.GCS_SERVICE_ACCOUNT_KEY }}' > /tmp/gcs-key.json
+          export GOOGLE_APPLICATION_CREDENTIALS=/tmp/gcs-key.json
+
+      - name: Configure Azure credentials (if using Azure)
+        if: ${{ secrets.AZURE_STORAGE_ACCOUNT_NAME }}
+        run: |
+          echo "AZURE_STORAGE_ACCOUNT_NAME=${{ secrets.AZURE_STORAGE_ACCOUNT_NAME }}" >> $GITHUB_ENV
+          echo "AZURE_STORAGE_ACCOUNT_KEY=${{ secrets.AZURE_STORAGE_ACCOUNT_KEY }}" >> $GITHUB_ENV
+
+      - name: Determine date range
+        id: dates
+        run: |
+          python3 << 'EOF'
+          import os
+          from datetime import datetime, timedelta
+          from pathlib import Path
+          import json
+
+          # Check if manual trigger
+          if "${{ github.event_name }}" == "workflow_dispatch":
+              start = "${{ github.event.inputs.start_date }}"
+              end = "${{ github.event.inputs.end_date }}"
+          else:
+              # Automatic mode: read progress file
+              progress_file = Path("progress.json")
+
+              if progress_file.exists():
+                  with open(progress_file) as f:
+                      progress = json.load(f)
+                      last_date = datetime.strptime(progress['last_completed_date'], '%Y-%m-%d')
+                      start = (last_date + timedelta(days=1)).strftime('%Y-%m-%d')
+              else:
+                  # First run
+                  start = "2014-10-01"
+
+              # Process 7 days at a time
+              start_dt = datetime.strptime(start, '%Y-%m-%d')
+              end = (start_dt + timedelta(days=6)).strftime('%Y-%m-%d')
+
+              # Don't go beyond today
+              today = datetime.now().strftime('%Y-%m-%d')
+              if end > today:
+                  end = today
+
+          print(f"start_date={start}")
+          print(f"end_date={end}")
+
+          # Write to GitHub output
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+              f.write(f"start_date={start}\n")
+              f.write(f"end_date={end}\n")
+          EOF
+
+      - name: Show date range
+        run: |
+          echo "Processing date range:"
+          echo "  Start: ${{ steps.dates.outputs.start_date }}"
+          echo "  End: ${{ steps.dates.outputs.end_date }}"
+
+      - name: Run cloud-aware backfill
+        id: backfill
+        run: |
+          python src/backfill_cloud.py \
+            --start "${{ steps.dates.outputs.start_date }}" \
+            --end "${{ steps.dates.outputs.end_date }}" \
+            --config config.yaml \
+            --tmp tmp \
+            --resume \
+            --sync-interval 24 \
+            --save-stats backfill_stats.json
+
+      - name: Update progress file
+        if: success()
+        run: |
+          python3 << 'EOF'
+          import json
+          from datetime import datetime
+
+          progress = {
+              'last_completed_date': "${{ steps.dates.outputs.end_date }}",
+              'last_run': datetime.now().isoformat(),
+              'status': 'success'
+          }
+
+          with open('progress.json', 'w') as f:
+              json.dump(progress, f, indent=2)
+          EOF
+
+      - name: Show statistics
+        if: always()
+        run: |
+          if [ -f backfill_stats.json ]; then
+            echo "Backfill statistics:"
+            cat backfill_stats.json
+          fi
+
+          # Show zarr info
+          echo ""
+          echo "Zarr store information:"
+          python src/cloud_storage.py test
+
+      - name: Commit progress file
+        if: success()
+        run: |
+          git config user.name "GitHub Actions Bot"
+          git config user.email "actions@github.com"
+
+          # Only commit progress.json (zarr data is in cloud)
+          git add progress.json
+
+          # Only commit if there are changes
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Update backfill progress: ${{ steps.dates.outputs.start_date }} to ${{ steps.dates.outputs.end_date }}"
+            git push
+          fi
+
+      - name: Upload statistics artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backfill-stats-${{ steps.dates.outputs.start_date }}
+          path: |
+            backfill_stats.json
+            progress.json
+          retention-days: 30
+
+      - name: Cleanup temporary files
+        if: always()
+        run: |
+          rm -rf tmp/
+          rm -f backfill_stats.json
+          rm -f /tmp/gcs-key.json
