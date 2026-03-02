@@ -1,0 +1,61 @@
+name: Test HRRR ASNOW Processing
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libeccodes-dev libeccodes-tools
+
+      - name: Install Python dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest
+
+      - name: Test template creation
+        run: |
+          python src/template.py test_data/test.zarr config.yaml
+          echo "✓ Template creation successful"
+
+      - name: Test single file download and process
+        run: |
+          # Test with a recent date (yesterday)
+          TEST_DATE=$(date -d "yesterday" +%Y-%m-%d)
+          echo "Testing with date: $TEST_DATE"
+
+          # Download a single hour
+          python src/downloader.py $TEST_DATE 12 tmp/
+
+          # Process it
+          GRIB_FILE=$(ls tmp/*.grib2 | head -1)
+          if [ -f "$GRIB_FILE" ]; then
+            python src/processor.py test_data/test.zarr "$GRIB_FILE"
+            echo "✓ Download and processing successful"
+          else
+            echo "⚠ No file downloaded (may not be available yet)"
+          fi
+
+      - name: Cleanup
+        if: always()
+        run: |
+          rm -rf test_data/
+          rm -rf tmp/

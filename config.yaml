@@ -1,0 +1,44 @@
+# Configuration for HRRR ASNOW Zarr Archive
+dataset:
+  name: "HRRR Analysis Accumulated Snowfall"
+  zarr_path: "data/hrrr-analysis-snowfall.zarr"
+
+# Date range for backfill
+# HRRR ASNOW is available from approximately 2014-10-01
+# But more reliable from 2018 onwards
+time_range:
+  start_date: "2014-10-01"
+  end_date: "2026-03-02"  # Updated to present
+
+# NOMADS data source
+nomads:
+  base_url: "https://nomads.ncep.noaa.gov/cgi-bin/filter_hrrr_2d.pl"
+  prod_url: "https://nomads.ncep.noaa.gov/pub/data/nccf/com/hrrr/prod"
+
+# Rate limiting for downloads
+rate_limiting:
+  requests_per_minute: 10
+  retry_attempts: 3
+  retry_delay_seconds: 5
+
+# Zarr encoding settings
+zarr_encoding:
+  compressor: "zstd"
+  compression_level: 5
+  shuffle: 2
+  chunks:
+    time: 24  # 24 hours per chunk
+    y: 1059
+    x: 1799
+
+# HRRR grid specifications
+grid:
+  nx: 1799
+  ny: 1059
+  resolution_m: 3000  # 3km in meters
+  projection: "+proj=lcc +lat_0=38.5 +lon_0=-97.5 +lat_1=38.5 +lat_2=38.5 +x_0=0 +y_0=0 +R=6371229 +units=m +no_defs"
+
+# GitHub Actions settings
+github_actions:
+  batch_size_days: 7  # Process 7 days at a time
+  max_parallel_jobs: 2  # Number of concurrent jobs
