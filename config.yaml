@@ -4,11 +4,15 @@ dataset:
   zarr_path: "data/hrrr-analysis-snowfall.zarr"
 
 # Date range for backfill
-# HRRR ASNOW is available from approximately 2014-10-01
-# But more reliable from 2018 onwards
+# NOTE: NOMADS only keeps ~2 weeks of recent data
+# Historical data (2014-2021) requires NCEI/AWS archive access
 time_range:
-  start_date: "2014-10-01"
+  start_date: "2026-02-20"  # Recent data available on NOMADS
   end_date: "2026-03-02"  # Updated to present
+
+  # For historical backfill (future enhancement):
+  # - 2014-2021: NCEI archive (https://www.ncei.noaa.gov/data/rapid-refresh/)
+  # - 2022-present: AWS Open Data (s3://noaa-hrrr-bdp-pds/)
 
 # NOMADS data source
 nomads:

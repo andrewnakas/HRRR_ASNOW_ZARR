@@ -1,6 +1,6 @@
 {
-  "last_completed_date": "2014-09-30",
+  "last_completed_date": "2026-02-19",
   "last_run": "2026-03-02T00:00:00",
   "status": "initialized",
-  "notes": "Starting backfill from 2014-10-01"
+  "notes": "Starting with recent NOMADS data (~2 weeks available). Historical data (2014-2021) will be backfilled later from NCEI/AWS archives."
 }
