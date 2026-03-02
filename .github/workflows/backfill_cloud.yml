@@ -49,7 +49,7 @@ jobs:
           pip install -r requirements.txt
 
       - name: Configure AWS credentials (if using S3)
-        if: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        if: ${{ secrets.AWS_ACCESS_KEY_ID != '' }}
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -57,13 +57,13 @@ jobs:
           aws-region: ${{ secrets.AWS_REGION || 'us-east-1' }}
 
       - name: Configure Google Cloud credentials (if using GCS)
-        if: ${{ secrets.GCS_SERVICE_ACCOUNT_KEY }}
+        if: ${{ secrets.GCS_SERVICE_ACCOUNT_KEY != '' }}
         run: |
           echo '${{ secrets.GCS_SERVICE_ACCOUNT_KEY }}' > /tmp/gcs-key.json
           export GOOGLE_APPLICATION_CREDENTIALS=/tmp/gcs-key.json
 
       - name: Configure Azure credentials (if using Azure)
-        if: ${{ secrets.AZURE_STORAGE_ACCOUNT_NAME }}
+        if: ${{ secrets.AZURE_STORAGE_ACCOUNT_NAME != '' }}
         run: |
           echo "AZURE_STORAGE_ACCOUNT_NAME=${{ secrets.AZURE_STORAGE_ACCOUNT_NAME }}" >> $GITHUB_ENV
           echo "AZURE_STORAGE_ACCOUNT_KEY=${{ secrets.AZURE_STORAGE_ACCOUNT_KEY }}" >> $GITHUB_ENV
