@@ -188,11 +188,14 @@ jobs:
             echo "No changes to commit"
           else
             echo "Committing changes with Git LFS..."
-            git commit -m "Update HRRR ASNOW data: ${{ steps.dates.outputs.start_date }} to ${{ steps.dates.outputs.end_date }}
+            git commit -m "$(cat <<'COMMIT_MSG'
+Update HRRR ASNOW data: ${{ steps.dates.outputs.start_date }} to ${{ steps.dates.outputs.end_date }}
 
 Data stored using Git LFS for efficient storage.
 
-🤖 Generated with Claude Code"
+🤖 Generated with Claude Code
+COMMIT_MSG
+)"
 
             # Push with LFS
             git lfs push origin main
