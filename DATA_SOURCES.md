@@ -4,9 +4,10 @@ This document explains where HRRR ASNOW data is available and how to access it.
 
 ## Current Implementation Status
 
-✅ **NOMADS Recent Data** - Currently implemented and working
-⚠️ **NCEI Historical Data** - Planned for future enhancement
-⚠️ **AWS Open Data** - Planned for future enhancement
+✅ **NOMADS Recent Data** - Implemented and working (`src/downloader.py`)
+✅ **NCEI Historical Data** - Implemented (`src/downloader_ncei.py`)
+✅ **AWS Open Data** - Implemented (`src/downloader_aws.py`)
+✅ **Unified Downloader** - Smart auto-selection (`src/downloader_unified.py`)
 
 ## Data Availability by Time Period
 
@@ -17,7 +18,13 @@ This document explains where HRRR ASNOW data is available and how to access it.
 **URL**: https://nomads.ncep.noaa.gov/pub/data/nccf/com/hrrr/prod/
 **Status**: ✅ **Currently Working**
 
-**Current Script Support**: ✅ Full support via `src/downloader.py`
+**Current Script Support**: ✅ Full support via `src/downloader.py` and `src/downloader_unified.py`
+
+**Quick Test**:
+```bash
+# Download yesterday's 12Z data
+python src/downloader_unified.py $(date -d "yesterday" +%Y-%m-%d) 12
+```
 
 This is what the current system uses. NOMADS provides real-time and very recent HRRR data.
 
@@ -31,18 +38,20 @@ This is what the current system uses. NOMADS provides real-time and very recent 
 **Time Range**: 2014-10-01 to 2021-12-31
 **Source**: NOAA NCEI (National Centers for Environmental Information)
 **URL**: https://www.ncei.noaa.gov/data/rapid-refresh/access/historical/analysis/
-**Status**: ⚠️ **Not Yet Implemented**
+**Status**: ✅ **Implemented** (`src/downloader_ncei.py`)
 
 **File Structure:**
 ```
 YYYYMM/YYYYMMDD/hrrr_yyyymmdd_HHz_wrfsfcf00.grib2
 ```
 
-**To Implement:**
-1. Create `src/downloader_ncei.py` with NCEI-specific logic
-2. Handle different URL structure
-3. Add to backfill orchestration
-4. Merge with NOMADS data seamlessly
+**Quick Test**:
+```bash
+# Download a file from 2018
+python src/downloader_ncei.py 2018-01-15 12
+```
+
+**Note**: NCEI files are FULL GRIB2 files (~400-600 MB each), not filtered for ASNOW only.
 
 **Example URL:**
 ```
@@ -54,20 +63,25 @@ https://www.ncei.noaa.gov/data/rapid-refresh/access/historical/analysis/201410/2
 **Time Range**: 2022-01-01 to ~2 weeks ago
 **Source**: AWS Open Data Program
 **URL**: s3://noaa-hrrr-bdp-pds/
-**Status**: ⚠️ **Not Yet Implemented**
+**Status**: ✅ **Implemented** (`src/downloader_aws.py`)
 
-**Access Method**: AWS S3 (requires boto3)
+**Access Method**: AWS S3 via boto3 (no authentication needed - public bucket)
 
 **File Structure:**
 ```
 s3://noaa-hrrr-bdp-pds/hrrr.YYYYMMDD/conus/hrrr.tHHz.wrfsfcf00.grib2
 ```
 
-**To Implement:**
-1. Use `boto3` or `s3fs` for S3 access
-2. No authentication required (public bucket)
-3. Add to downloader with S3 support
-4. Handle different path structure
+**Quick Test**:
+```bash
+# Install boto3 if needed
+pip install boto3
+
+# Download a file from 2023
+python src/downloader_aws.py 2023-01-15 12
+```
+
+**Note**: Files are FULL GRIB2 (~400-600 MB), not ASNOW-only. No AWS credentials needed!
 
 **Example Access:**
 ```python
@@ -134,29 +148,50 @@ To build a complete 2014-present dataset, we'll need to:
 - [ ] Gap detection and filling
 - [ ] Complete 2014-present coverage
 
-## Manual Historical Data Download
+## Quick Start: Download Historical Data
 
-If you need specific historical data right now, you can download manually:
+### Easiest: Use the Unified Downloader
 
-### From NCEI
+The unified downloader automatically selects the right source:
+
 ```bash
-# Example: Download October 1, 2014, 00Z
-wget https://www.ncei.noaa.gov/data/rapid-refresh/access/historical/analysis/201410/20141001/hrrr_20141001_00z_wrfsfcf00.grib2
+# Download a single hour (auto-detects source)
+python src/downloader_unified.py 2018-01-15 12
 
-# Process it
-python src/processor.py data/hrrr-analysis-snowfall.zarr hrrr_20141001_00z_wrfsfcf00.grib2
+# Download a date range (auto-switches sources)
+python src/downloader_unified.py 2020-01-01 2020-01-07
+
+# Process all downloaded files
+python src/processor.py data/hrrr-analysis-snowfall.zarr tmp/*.grib2
 ```
 
-### From AWS Open Data
+### Source-Specific Downloads
+
+**NCEI (2014-2021)**:
 ```bash
-# Install AWS CLI
-pip install awscli
+python src/downloader_ncei.py 2018-01-15 12
+```
 
-# Download (no authentication needed)
+**AWS (2022-recent)**:
+```bash
+python src/downloader_aws.py 2023-01-15 12
+```
+
+**NOMADS (last ~10 days)**:
+```bash
+python src/downloader.py $(date -d "yesterday" +%Y-%m-%d) 12
+```
+
+### Manual Downloads (if scripts fail)
+
+**NCEI Direct**:
+```bash
+wget https://www.ncei.noaa.gov/data/rapid-refresh/access/historical/analysis/201410/20141001/hrrr_20141001_00z_wrfsfcf00.grib2
+```
+
+**AWS Direct**:
+```bash
 aws s3 cp s3://noaa-hrrr-bdp-pds/hrrr.20220101/conus/hrrr.t00z.wrfsfcf00.grib2 . --no-sign-request
-
-# Process it
-python src/processor.py data/hrrr-analysis-snowfall.zarr hrrr.t00z.wrfsfcf00.grib2
 ```
 
 ## Cost Considerations
