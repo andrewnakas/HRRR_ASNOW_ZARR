@@ -8,6 +8,7 @@ import xarray as xr
 from pyproj import Transformer
 import yaml
 from pathlib import Path
+from numcodecs import Blosc
 
 
 class HRRRSnowfallTemplateConfig:
@@ -163,7 +164,7 @@ def initialize_zarr_store(zarr_path, config_path="config.yaml"):
     # Encoding for efficient storage
     encoding = {
         'accumulated_snowfall': {
-            'compressor': zarr.Blosc(
+            'compressor': Blosc(
                 cname=config['zarr_encoding']['compressor'],
                 clevel=config['zarr_encoding']['compression_level'],
                 shuffle=config['zarr_encoding']['shuffle']

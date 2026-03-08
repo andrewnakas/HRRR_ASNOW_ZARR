@@ -1,5 +1,5 @@
 # Core dependencies for HRRR ASNOW Zarr processing
-zarr>=2.16.0
+zarr>=2.16.0,<3.0.0
 xarray>=2023.1.0
 cfgrib>=0.9.10
 eccodes>=1.6.0
@@ -9,6 +9,7 @@ dask>=2023.1.0
 requests>=2.28.0
 pyyaml>=6.0
 python-dateutil>=2.8.2
+numcodecs>=0.11.0
 
 # Validation and visualization
 matplotlib>=3.7.0

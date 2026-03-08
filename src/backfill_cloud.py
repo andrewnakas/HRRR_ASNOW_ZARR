@@ -15,6 +15,7 @@ from template import HRRRSnowfallTemplateConfig
 from downloader import NomadsDownloader
 from processor import HRRRSnowfallProcessor
 from cloud_storage import CloudStorageManager
+from numcodecs import Blosc
 
 logging.basicConfig(
     level=logging.INFO,
@@ -93,10 +94,9 @@ class CloudAwareBackfill:
             template = template_config.create_template()
 
             # Encoding for efficient storage
-            import zarr
             encoding = {
                 'accumulated_snowfall': {
-                    'compressor': zarr.Blosc(
+                    'compressor': Blosc(
                         cname=self.config['zarr_encoding']['compressor'],
                         clevel=self.config['zarr_encoding']['compression_level'],
                         shuffle=self.config['zarr_encoding']['shuffle']
