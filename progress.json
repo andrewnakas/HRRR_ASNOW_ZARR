@@ -1,6 +1,6 @@
 {
-  "last_completed_date": "2026-02-19",
-  "last_run": "2026-03-02T00:00:00",
+  "last_completed_date": "2026-03-02",
+  "last_run": "2026-03-08T00:00:00",
   "status": "initialized",
-  "notes": "Starting with recent NOMADS data (~2 weeks available). Historical data (2014-2021) will be backfilled later from NCEI/AWS archives."
+  "notes": "Starting with recent NOMADS data (~10 days available). NOMADS retention is 10-14 days. Historical data (2014-2021) will be backfilled later from NCEI/AWS archives."
 }
